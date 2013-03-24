@@ -19,6 +19,9 @@ class Core(QObject):
     ERROR_PASSWORD_RESTRICTION = 3
     ERROR_USER_EXISTS = 4
     ERROR_OLD_PASSWORD = 5
+    ERROR_ATTEMPTS = 6
+
+    __attempts = 0
 
     __dbName = "passApp.db"
 
@@ -60,10 +63,10 @@ class Core(QObject):
     def updateUser(self, user):
         """Update user."""
         cursor = self.connection.cursor()
-        cursor.execute("""UPDATE Users SET user_id = ?, username = ?, password = ?, salt = ?, blocked = ?,
-        restrictions = ?, admin = ?""",
-                       [user.user_id, user.username, user.password, user.salt, user.blocked, user.restrictions,
-                        user.admin])
+        cursor.execute("""UPDATE Users SET username = ?, password = ?, salt = ?, blocked = ?,
+        restrictions = ?, admin = ? WHERE user_id = ?""",
+                       [user.username, user.password, user.salt, user.blocked, user.restrictions,
+                        user.admin, user.user_id])
         cursor.close()
         self.connection.commit()
 
@@ -71,7 +74,7 @@ class Core(QObject):
         """Add user to db."""
         if self.getUser(username=user.username):
             return self.ERROR_USER_EXISTS
-        if user.restrictions and not self.__verifyPassword(user.password):
+        if user.restrictions and not self.verifyPassword(user.password):
             return self.ERROR_PASSWORD_RESTRICTION
 
         cursor = self.connection.cursor()
@@ -107,7 +110,10 @@ class Core(QObject):
     def logIn(self, username, password):
         """Log in into system."""
         user = self.getUser(username=username)
+        if self.__attempts > 2:
+            return self.ERROR_ATTEMPTS
         if (not user) or (self.__hashPassword(user.user_id, password, user.salt) != user.password):
+            self.__attempts += 1
             return self.ERROR_INCORRECT_CREDENTIALS
         if user.blocked:
             return self.ERROR_USER_IS_BLOCKED
@@ -124,7 +130,7 @@ class Core(QObject):
         user = self.currentUser
         if not user or user.password != self.__hashPassword(user.user_id, oldPassword, user.salt):
             return self.ERROR_OLD_PASSWORD
-        if user.restrictions and not self.__verifyPassword(newPassword):
+        if user.restrictions and not self.verifyPassword(newPassword):
             return self.ERROR_PASSWORD_RESTRICTION
         user.password = self.__hashPassword(user.user_id, newPassword, user.salt)
         self.updateUser(user)
@@ -134,7 +140,7 @@ class Core(QObject):
         """Returns hashed password"""
         return sha1(str(userId) + sha1(password + salt).hexdigest()).hexdigest()
 
-    def __verifyPassword(self, password):
+    def verifyPassword(self, password):
         """Verify password strength.
         In password must be upper letters, lower letters and digits.
         Password length must be at least 6 characters
