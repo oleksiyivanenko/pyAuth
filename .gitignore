@@ -1,5 +1,7 @@
 *.py[cod]
 .idea/
+*.exe
 *.db
 build/
 dist/
+pyAuth/
