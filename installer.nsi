@@ -1,77 +1,53 @@
-!include nsDialogs.nsh
+!include "MUI2.nsh"
 !include LogicLib.nsh
 
 Name "pyAuth"
 OutFile "pyAuth_x64.exe"
 
-XPStyle on
-
-Page custom nsDialogsPage
-Page instfiles
-
-Var Dialog
-Var Label
-Var Text
-var BUTTON
-
 installDir $PROGRAMFILES64
 
-Function nsDialogsPage
-	nsDialogs::Create 1018
-	Pop $0
+!define MUI_ABORTWARNING
 
-	${NSD_CreateLabel} 0 10 100% 10u "Where you want to install pyAuth?"
-	Pop $Label
+!define sysGetDiskFreeSpaceEx 'kernel32::GetDiskFreeSpaceExA(t, *l, *l, *l) i'
 
-	${NSD_CreateLabel} 0 35 75% 12u $INSTDIR
-	Pop $Text
-#	GetFunctionAddress $0 OnChange
-#	nsDialogs::OnChange $Text $0
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
 
-	${NSD_CreateButton} 75% 35 25% 12u "Change folder"
-	Pop $0
-	GetFunctionAddress $0 OnClick
-	nsDialogs::OnClick $BUTTON $0
-#	GetFunctionAddress $0 OnChange
-#	nsDialogs::OnChange $EDIT $0
+var Username
+var Computer
+var ScreenHeight
+var DiskSpace
 
 
-#	${If} $Dialog == error
-#		Abort
-#	${EndIf}
-#
-#	${NSD_CreateLabel} 0 0 100% 12u "Hello, welcome to nsDialogs!"
-#	Pop $Label
+Function .onInit
+System::Call "advapi32::GetUserName(t .s, *i ${NSIS_MAX_STRLEN} r1) i.r2"
+Pop $Username
 
-#	nsDialogs::SelectFolderDialog "Select install folder" $INSTDIR
-#	Pop $INSTDIR
+ReadRegStr $Computer HKLM "System\CurrentControlSet\Control\ComputerName\ActiveComputerName" "ComputerName"
 
-	nsDialogs::Show
-#
-FunctionEnd
+System::Call "user32::GetSystemMetrics(i 1) i .s"
+Pop $ScreenHeight
 
-#Function OnChange
-#
-#	Pop $0
-#	${NSD_GetText} $INSTDIR $0
-#	System::Call user32::GetWindowText(i$Text,t.r0,i${NSIS_MAX_STRLEN})
-#	StrCpy $INSTDIR $0
-#	MessageBox MB_OK $INSTDIR
-#
-#FunctionEnd
-
-Function OnClick
-
-	Pop $0 # HWND
-
-	nsDialogs::SelectFolderDialog "Select install folder" $INSTDIR
-	Pop $INSTDIR
 
 FunctionEnd
+
+function FreeDiskSpace
+  System::Call '${sysGetDiskFreeSpaceEx}(r0,.,.s,)'
+  Pop $DiskSpace
+functionend
 
 section
 
-DetailPrint "hello world"
+StrCpy $0 $INSTDIR
+Call FreeDiskSpace
+
+DetailPrint $Username
+DetailPrint $Computer
+DetailPrint $WINDIR
+DetailPrint $SYSDIR
+DetailPrint $ScreenHeight
+DetailPrint $DiskSpace
+
 
 setOutPath $INSTDIR
 
