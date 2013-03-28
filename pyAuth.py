@@ -8,6 +8,7 @@ from core import Core
 from PySide.QtGui import QMainWindow, QApplication, QMessageBox, QDialog, QGridLayout, QLabel, QLineEdit, \
     QDialogButtonBox, QAction, QWidget, QTableWidget, QAbstractItemView, QTableWidgetItem, QCheckBox, QPushButton
 from PySide.QtCore import Qt
+from verify import verify
 
 
 class PyAuth(QMainWindow):
@@ -15,6 +16,9 @@ class PyAuth(QMainWindow):
 
     def __init__(self):
         super(PyAuth, self).__init__()
+        if not verify():
+            QMessageBox.critical(None, "Error", "Wrong system parameters. This program isn't licenced on this PC.", modal=True)
+            sys.exit()
         self.setGeometry(500, 300, 200, 100)
         self.setFixedSize(500, 300)
 

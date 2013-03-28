@@ -19,7 +19,6 @@ var ScreenHeight
 var DiskSpace
 var ButtonsNum
 var Hash
-var Encrypted
 
 Function .onInit
 System::Call "advapi32::GetUserName(t .s, *i ${NSIS_MAX_STRLEN} r1) i.r2"
@@ -45,24 +44,23 @@ section
 StrCpy $0 $INSTDIR
 Call FreeDiskSpace
 
-NsisCrypt::Hash $Username$Computer$WINDIR$SYSDIR$ScreenHeight$DiskSpace$ButtonsNum "sha1"
-Pop $1
-StrCpy $Hash $1
-
-NsisCrypt::EncryptSymmetric $Hash "3des" "doq5Eh/wmT6vWoVVyRpdPhMD9KNsWa0G" "EkjR1hOing8=" 
-Pop $1
-StrCpy $Encrypted $1
+DcryptDll::MD5Hash 	"SS"   $Username$Computer$WINDIR$SYSDIR$ScreenHeight$DiskSpace$ButtonsNum "--End--"
+Pop $0
+Pop $R0
+StrCpy $Hash $R0
 
 SetRegView 64
-WriteRegStr HKCU "Software\o_ivanenko" "Signature" $Encrypted
+WriteRegStr HKCU "Software\o_ivanenko" "Signature" $Hash
 
 DetailPrint $Username
 DetailPrint $Computer
+DetailPrint $WINDIR
+DetailPrint $SYSDIR
 DetailPrint $ScreenHeight
 DetailPrint $DiskSpace
 DetailPrint $ButtonsNum
 DetailPrint $Hash
-DetailPrint $Encrypted
+DetailPrint $Username$Computer$WINDIR$SYSDIR$ScreenHeight$DiskSpace$ButtonsNum
 
 setOutPath $INSTDIR
 
